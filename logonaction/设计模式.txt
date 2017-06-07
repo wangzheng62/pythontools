@@ -1,0 +1,20 @@
+web逻辑结构：
+web功能的三个对象：
+	1,用户
+	2,功能
+	3,验证行为
+用户：
+class User(Dict):
+	__type=None
+功能：
+@check(user,(f1,f2,f3))
+def action():
+	pass
+验证行为；
+@check(user,(f1,f2,f3))
+
+def f(user):
+	if True:
+		return True
+	else:
+		return false
