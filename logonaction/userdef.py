@@ -1,15 +1,17 @@
-class User(object):
-	__type=''
-	def __init__(self,username,passwd,**kw):
-		self.__username=username
-		self.passwd=passwd
-		for key in kw:
-			exec('self.%s=kw[key]'%key)
-	@property
-	def username(self):
-		return self.__username
+class TableMetaclass(type):
+	def __new__(cls,name,bases,attrs):
+		print(attrs)
+		if attrs['dbtype']=='mssql':
+			attrs['__slot__']=mssqlgetcol(db=attrs['db'],tablename=attrs['tablename'])
+		if attrs['dbtype']=='mysql':
+			attrs['__slot__']=mysqlgetcol(db=attrs['db'],tablename=attrs['tablename'])
+		return type.__new__(cls,name,bases,attrs)
+class Table(dict,metaclass=TableMetaclass):
+	dbtype='mssql'
+	db='manager'
+	tablename='userlist'
+	def __init__(self):
+		pass
 if __name__=='__main__':
-	u=User('test','123456')
-	print(u.username,u.passwd)
-	u.passwd='aaa'
-	print(u.username,u.passwd)
+	t=Table()
+	print(t.__slot__)
