@@ -12,12 +12,12 @@ class Mssqlserver():
 		t=cr.fetchall()
 		if t==None:
 			return None
-		if type(t[0])==tuple:
+		if len(t)>1:
 			l=[]
 			for tp in t:
 				l.append(tp[0])
 			return l
-		return t
+		return t[0]
 	def getdblist(self):
 		sql='SELECT Name FROM Master..SysDatabases ORDER BY Name;'
 		res=self.getsysdata(sql)
@@ -43,7 +43,15 @@ class MssqlTable(metaclass=MssqlTableMetaclass):
 		res=self.getsysdata(sql)
 		return res
 	def getvalue(self):
-		sql='use %s;select * from %s where loginname=\'%s\' and passwd=\'%s\';'%(self.dbname,self.tablename,self.username,,self.passwd)
+		sql='use %s;select * from %s where loginname=\'%s\' and passwd=\'%s\';'%(self.dbname,self.tablename,self.username,self.passwd)
+		res=self.getsysdata(sql)
+		return res
+	def __init__(self,username,passwd):
+		self.username=username
+		self.passwd=passwd
+		self.colname=self.getcolname()
+		self.value=self.getvalue()
+		self.info=dict(zip(self.colname,self.value))
 #数据库示例
 class Manager(MssqlDb):
 	pass
@@ -54,5 +62,7 @@ class Userlist(MssqlTable,Manager):
 if __name__=='__main__':
 	db=Manager()
 	print(db.getUsertable())
-	tb=Userlist()
-	print(tb.getcolname())
+	tb=Userlist('wangzheng','123456')
+	tb1=Userlist('test','12345678')
+	print(tb.info)
+	print(tb1.info)
