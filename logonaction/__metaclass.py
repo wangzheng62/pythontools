@@ -1,19 +1,24 @@
-import pymssql
+import pymssql,CONFIG
 #服务器
 class Mssqlserver():
-	SEVERCONFIG=['127.0.0.1','sa','12345678']
+	SEVERCONFIG=CONFIG.DBSERVER
 	def getconn(self):
 		conn=pymssql.connect(*self.SEVERCONFIG)
 		return conn
-	def getsysdata(self,sql):
+	def getdata(self,sql):
 		conn=self.getconn()
 		cr=conn.cursor()
 		cr.execute(sql)
 		t=cr.fetchall()
 		return t
+	def changedata(self,sql):
+		conn=self.getconn()
+		cr=conn.cursor()
+		cr.execute(sql)
+		conn.commit()
 	def getdblist(self):
 		sql='SELECT Name FROM Master..SysDatabases ORDER BY Name;'
-		res=self.getsysdata(sql)
+		res=self.getdata(sql)
 		return res
 #数据库
 class MssqlDbMetaclass(type):
@@ -23,7 +28,7 @@ class MssqlDbMetaclass(type):
 class MssqlDb(Mssqlserver,metaclass=MssqlDbMetaclass):
 	def getUsertable(self):
 		sql='use %s;Select Name From SysObjects Where XType=\'U\' order By Name;'%self.dbname
-		t=self.getsysdata(sql)
+		t=self.getdata(sql)
 		l=[]
 		for tp in t:
 			l.append(tp[0])
@@ -33,34 +38,63 @@ class MssqlTableMetaclass(MssqlDbMetaclass):
 	def __new__(cls,name,bases,attrs):
 		attrs['tablename']=name
 		return type.__new__(cls,name,bases,attrs)
-class MssqlTable(metaclass=MssqlTableMetaclass):
+class MssqlTableBase(metaclass=MssqlTableMetaclass):
 	def getcolname(self):
 		sql='use %s;select name from syscolumns where id = object_id(\'%s\') order by colorder;'%(self.dbname,self.tablename)
-		t=self.getsysdata(sql)
+		t=self.getdata(sql)
 		l=[]
 		for tp in t:
 			l.append(tp[0])
 		return l
-	def getvalue(self):
-		sql='use %s;select * from %s where loginname=\'%s\' and passwd=\'%s\';'%(self.dbname,self.tablename,self.username,self.passwd)
-		res=self.getsysdata(sql)
+class MssqlTable(MssqlTableBase):
+	def getvalue(self,**kw):
+		condition=''
+		if len(kw)==0:
+			pass
+		else:
+			condition='where '
+			for key in kw:
+				temp='%s =\'%s\' and '%(key,kw[key])
+				condition=condition+temp
+			condition=condition[:-4]
+		sql='use %s;select * from %s %s;'%(self.dbname,self.tablename,condition)
+		res=self.getdata(sql)
 		return res
-	def __init__(self,username,passwd):
-		self.username=username
-		self.passwd=passwd
+	def __init__(self,**kw):
+		self.info=kw
 		self.colname=self.getcolname()
-		self.value=self.getvalue()
+		self.value=self.getvalue(**kw)
+	def getkw(self):
+		kw={}
+		for name in self.colname:
+			kw[name]=[]
+		for row in self.value:
+			colnum=0
+			for cell in row:
+				kw[self.colname[colnum]].append(cell)
+				colnum+=1
+		return kw
+#______________________________________________________
 #数据库示例
 class Manager(MssqlDb):
 	pass
 		
 #表示例
 class Userlist(MssqlTable,Manager):
-	pass
+	'aaaa'
+	def isexist(self):
+		if len(self.value)==0:
+			return False
+		else:
+			return True
+#测试
 if __name__=='__main__':
 	db=Manager()
 	print(db.getUsertable())
-	tb=Userlist('wangzheng','123456')
-	tb1=Userlist('test','12345678')
+	tb=Userlist(passwd='123456')
 	print(tb.colname)
 	print(tb.value)
+	print(tb.info)
+	print(tb.getkw())
+	print(tb.isexist())
+	
