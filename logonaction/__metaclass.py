@@ -10,14 +10,7 @@ class Mssqlserver():
 		cr=conn.cursor()
 		cr.execute(sql)
 		t=cr.fetchall()
-		if t==None:
-			return None
-		if len(t)>1:
-			l=[]
-			for tp in t:
-				l.append(tp[0])
-			return l
-		return t[0]
+		return t
 	def getdblist(self):
 		sql='SELECT Name FROM Master..SysDatabases ORDER BY Name;'
 		res=self.getsysdata(sql)
@@ -30,8 +23,11 @@ class MssqlDbMetaclass(type):
 class MssqlDb(Mssqlserver,metaclass=MssqlDbMetaclass):
 	def getUsertable(self):
 		sql='use %s;Select Name From SysObjects Where XType=\'U\' order By Name;'%self.dbname
-		res=self.getsysdata(sql)
-		return res
+		t=self.getsysdata(sql)
+		l=[]
+		for tp in t:
+			l.append(tp[0])
+		return l
 #表
 class MssqlTableMetaclass(MssqlDbMetaclass):
 	def __new__(cls,name,bases,attrs):
@@ -40,8 +36,11 @@ class MssqlTableMetaclass(MssqlDbMetaclass):
 class MssqlTable(metaclass=MssqlTableMetaclass):
 	def getcolname(self):
 		sql='use %s;select name from syscolumns where id = object_id(\'%s\') order by colorder;'%(self.dbname,self.tablename)
-		res=self.getsysdata(sql)
-		return res
+		t=self.getsysdata(sql)
+		l=[]
+		for tp in t:
+			l.append(tp[0])
+		return l
 	def getvalue(self):
 		sql='use %s;select * from %s where loginname=\'%s\' and passwd=\'%s\';'%(self.dbname,self.tablename,self.username,self.passwd)
 		res=self.getsysdata(sql)
@@ -51,7 +50,6 @@ class MssqlTable(metaclass=MssqlTableMetaclass):
 		self.passwd=passwd
 		self.colname=self.getcolname()
 		self.value=self.getvalue()
-		self.info=dict(zip(self.colname,self.value))
 #数据库示例
 class Manager(MssqlDb):
 	pass
@@ -64,5 +62,5 @@ if __name__=='__main__':
 	print(db.getUsertable())
 	tb=Userlist('wangzheng','123456')
 	tb1=Userlist('test','12345678')
-	print(tb.info)
-	print(tb1.info)
+	print(tb.colname)
+	print(tb.value)
