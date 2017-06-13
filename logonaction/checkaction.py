@@ -1,35 +1,46 @@
-from userdef import User
+#装饰器
 def check(user,callback,*checkactions):
 	def auth(func):
 		def wrapper(*args,**kw):
+			n=1
 			for f in checkactions:
-				if f(user):
-					return func(*args,**kw)
+				bool=f(user)
+				if bool:
+					n+=1
 				else:
 					break
-			return callback()
+			if	bool:	
+				return func(*args,**kw)
+			else:
+				return callback(n)
 		return wrapper
 	return auth
-def f1(user):
-	if user.test1=='test1':
+#示例
+from __mssqlmetaclass import MssqlDb,MssqlTable
+class Manager(MssqlDb):
+	pass
+class Userlist(MssqlTable,Manager):
+	pass
+def login(user):
+	if user.isexist():
 		return True
 	else:
 		return False
-def f2(user):
-	if user.test2=='test2':
+def auth(user):
+	if user.getkw()['auth'][0]==2:
 		return True
 	else:
 		return False
-def f3(user):
-	if user.test3=='test3':
+def date(user):
+	if user.getkw()['endtime'][0]=='2017-07-01':
 		return True
 	else:
 		return False
-def err():
-	print('条件失败')
+def err(n):
+	print('条件%s失败'%n)
 if __name__=='__main__':
-	u=User('a','1',test1='test1',test2='test2',test3='test3')
-	@check(u,err,*(f1,f2,f3))
+	u=Userlist(loginname='huoyubei',passwd='1234')
+	@check(u,err,*(login,auth,date))
 	def do():
 		print('条件成功')
 	do()
