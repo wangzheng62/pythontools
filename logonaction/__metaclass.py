@@ -92,39 +92,51 @@ class MssqlTable(MssqlTableBase):
 	def insert(self):
 		'isexist is False'
 		'all unique is null'
-		colnames=self.getcolname()
-		names=[]
-		values=[]
-		for key in colnames:
-			if key in self.info:
-				names.append(key)
-				values.append(self.info[key])
-		names=str(tuple(names))
-		names=names.replace('\'','')
-		values=str(tuple(values))
-		sql='use %s;insert into %s%s values %s;'%(self.dbname,self.tablename,names,values)
-		self.changedata(sql)
-	def update(self):
-		'isexist is True'
-		'all unique is null'
-		data=''
-		sql='UPDATE %s SET %s %s;'%(self.tablename,data,condition)
-		self.changedata(sql)
-	def delete(self):
-		'isexist is True'
-		condition=''
-		if len(kw)==0:
+		if self.isexist():
 			return False
 		else:
-			condition='where '
+			colnames=self.getcolname()
+			names=[]
+			values=[]
+			for key in colnames:
+				if key in self.info:
+					names.append(key)
+					values.append(self.info[key])
+			names=str(tuple(names))
+			names=names.replace('\'','')
+			values=str(tuple(values))
+			sql='use %s;insert into %s%s values %s;'%(self.dbname,self.tablename,names,values)
+			self.changedata(sql)
+			return True
+	def update(self,**kw):
+		'isexist is True'
+		'all unique is null'
+		if len(kw)==0 or not self.isexist():
+			return False
+		else:
+			data=''
 			for key in kw:
-				temp='%s =\'%s\' and '%(key,kw[key])
+				temp='%s =\'%s\' ,'%(key,kw[key])
+				data=data+temp
+			data=data[:-1]
+			condition=''
+			for key in self.info:
+				temp='%s =\'%s\' and '%(key,self.info[key])
 				condition=condition+temp
 			condition=condition[:-4]
-			sql='use %s;delete from %s %s;'%(self.dbname,self.tablename,condition)
+			sql='use %s;UPDATE %s SET %s where %s;'%(self.dbname,self.tablename,data,condition)
 			self.changedata(sql)
-			return True	
-			
+			return True
+	def delete(self):
+		'isexist is True'
+		condition='where '
+		for key in self.info:
+			temp='%s =\'%s\' and '%(key,self.info[key])
+			condition=condition+temp
+		condition=condition[:-4]
+		sql='use %s;delete from %s %s;'%(self.dbname,self.tablename,condition)
+		self.changedata(sql)
+		return True	
 			
 #______例子_______________________________________________
 #数据库示例
@@ -140,6 +152,7 @@ if __name__=='__main__':
 	db=Manager()
 	print(db.getUsertable())
 	tb=Userlist(passwd='123456')
+	tb.update(passwd='123')
 	print(tb.info)
 	print(tb.getkw())
 	print(tb.isexist())
@@ -147,3 +160,4 @@ if __name__=='__main__':
 	#t1.delete(loginname='huoyubei')
 	print(tb.iscolumnexist('passwd'))
 	print(t1.iscolumnexist('loginname'))
+	t1.update()
