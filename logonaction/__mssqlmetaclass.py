@@ -1,7 +1,7 @@
 import pymssql,CONFIG
 #服务器
 class Mssqlserver():
-	SEVERCONFIG=CONFIG.DBSERVER
+	SEVERCONFIG=CONFIG.MSSQLDBSERVER
 	def getconn(self):
 		conn=pymssql.connect(*self.SEVERCONFIG)
 		return conn

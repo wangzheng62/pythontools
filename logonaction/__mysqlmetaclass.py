@@ -1,9 +1,9 @@
-import pymssql,CONFIG
+import mysql.connector,CONFIG
 #服务器
-class Mssqlserver():
-	SEVERCONFIG=CONFIG.DBSERVER
+class Mysqlserver():
+	SEVERCONFIG=CONFIG.MYSQLDBSERVER
 	def getconn(self):
-		conn=pymssql.connect(*self.SEVERCONFIG)
+		conn=mysql.connector.connect(**self.SEVERCONFIG)
 		return conn
 	def getdata(self,sql):
 		conn=self.getconn()
@@ -17,31 +17,58 @@ class Mssqlserver():
 		cr.execute(sql)
 		conn.commit()
 	def getdblist(self):
-		sql='SELECT Name FROM Master..SysDatabases ORDER BY Name;'
-		res=self.getdata(sql)
+		sql='show databases;'
+		conn=self.getconn()
+		cr=conn.cursor()
+		cr.execute(sql)
+		t=cr.fetchall()
+		res=[]
+		for tp in t:
+			res.append(tp[0])
 		return res
 #数据库
-class MssqlDbMetaclass(type):
+class MysqlDbMetaclass(type):
 	def __new__(cls,name,bases,attrs):
 		attrs['dbname']=name
+		def getconn(self):
+			self.SEVERCONFIG['database']=name
+			conn=mysql.connector.connect(**self.SEVERCONFIG)
+			return conn
+		attrs['getconn']=getconn
+		sql='show databases;'
+		conn=self.getconn()
+		cr=conn.cursor()
+		cr.execute('show databases;')
+		t=cr.fetchall()
+		res=[]
+		for tp in t:
+			res.append(tp[0])
+		
+		if name not in res and not name=='MysqlDb':
+			sql='create database %s;'%name
+			conn=mysql.connector.connect(**self.SEVERCONFIG)
+			cr=conn.cursor()
+			cr.execute(sql)
+			conn.commit()
 		return type.__new__(cls,name,bases,attrs)
-class MssqlDb(Mssqlserver,metaclass=MssqlDbMetaclass):
+class MysqlDb(Mysqlserver,metaclass=MysqlDbMetaclass):
 	def getUsertable(self):
-		sql='use %s;Select Name From SysObjects Where XType=\'U\' order By Name;'%self.dbname
+		sql='show tables;'
 		t=self.getdata(sql)
 		l=[]
 		for tp in t:
 			l.append(tp[0])
 		return l
+	
 #表
-class MssqlTableMetaclass(MssqlDbMetaclass):
+class MysqlTableMetaclass(MysqlDbMetaclass):
 	def __new__(cls,name,bases,attrs):
 		attrs['tablename']=name
 		return type.__new__(cls,name,bases,attrs)
-class MssqlTableBase(metaclass=MssqlTableMetaclass):
+class MysqlTableBase(metaclass=MysqlTableMetaclass):
 	#获取列名
 	def getcolname(self):
-		sql='use %s;select name from syscolumns where id = object_id(\'%s\') order by colorder;'%(self.dbname,self.tablename)
+		sql='select column_name from information_schema.columns where table_schema =\'%s\' and table_name = \'%s\' ;'%(self.dbname,self.tablename)
 		t=self.getdata(sql)
 		l=[]
 		for tp in t:
@@ -58,10 +85,10 @@ class MssqlTableBase(metaclass=MssqlTableMetaclass):
 				temp='%s =\'%s\' and '%(key,kw[key])
 				condition=condition+temp
 			condition=condition[:-4]
-		sql='use %s;select * from %s %s;'%(self.dbname,self.tablename,condition)
+		sql='select * from %s %s;'%(self.tablename,condition)
 		res=self.getdata(sql)
 		return res
-class MssqlTable(MssqlTableBase):
+class MysqlTable(MysqlTableBase):
 	def __init__(self,**kw):
 		self.info=kw
 	#辅助功能
@@ -105,7 +132,7 @@ class MssqlTable(MssqlTableBase):
 			names=str(tuple(names))
 			names=names.replace('\'','')
 			values=str(tuple(values))
-			sql='use %s;insert into %s%s values %s;'%(self.dbname,self.tablename,names,values)
+			sql='insert into %s%s values %s;'%(self.tablename,names,values)
 			self.changedata(sql)
 			return True
 	def update(self,**kw):
@@ -124,7 +151,7 @@ class MssqlTable(MssqlTableBase):
 				temp='%s =\'%s\' and '%(key,self.info[key])
 				condition=condition+temp
 			condition=condition[:-4]
-			sql='use %s;UPDATE %s SET %s where %s;'%(self.dbname,self.tablename,data,condition)
+			sql='UPDATE %s SET %s where %s;'%(self.tablename,data,condition)
 			self.changedata(sql)
 			return True
 	def delete(self):
@@ -134,30 +161,23 @@ class MssqlTable(MssqlTableBase):
 			temp='%s =\'%s\' and '%(key,self.info[key])
 			condition=condition+temp
 		condition=condition[:-4]
-		sql='use %s;delete from %s %s;'%(self.dbname,self.tablename,condition)
+		sql='delete from %s %s;'%(self.tablename,condition)
 		self.changedata(sql)
 		return True	
 			
 #______例子_______________________________________________
 #数据库示例
-class Manager(MssqlDb):
+class Groupdata1(MysqlDb):
 	pass
 		
 #表示例
-class Userlist(MssqlTable,Manager):
+class Group10(MysqlTable,Groupdata1):
 	'aaaa'
 	pass
 #测试
 if __name__=='__main__':
-	db=Manager()
-	print(db.getUsertable())
-	tb=Userlist(passwd='123456')
-	tb.update(passwd='123')
-	print(tb.info)
-	print(tb.getkw())
-	print(tb.isexist())
-	t1=Userlist(loginname='huoyubei',passwd='123456',endtime='2017-07-01',auth='3',creator='test')
-	#t1.delete(loginname='huoyubei')
-	print(tb.iscolumnexist('passwd'))
-	print(t1.iscolumnexist('loginname'))
-	t1.update()
+	s=Group10()
+	print(s.getdblist())
+	print(s.SEVERCONFIG)
+	print(s.getUsertable())
+	print(s.getcolname())
