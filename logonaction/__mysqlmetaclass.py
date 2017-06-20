@@ -1,9 +1,30 @@
-import mysql.connector,CONFIG
+import mysql.connector
 #服务器
+
 class Mysqlserver():
-	SEVERCONFIG=CONFIG.MYSQLDBSERVER
+	SERVER={'user':'root','password':'12345678','host':'127.0.0.1'}
+	
+	def getdblist(self):
+		conn=mysql.connector.connect(**self.SERVER)
+		cr=conn.cursor()
+		sql='show databases;'
+		cr.execute(sql)
+		t=cr.fetchall()
+		res=[]
+		for tp in t:
+			res.append(tp[0])
+		return res
+			
+#数据库
+class MysqlDBmetaclass(type):
+	def __new__(cls,name,bases,attrs):
+		attrs['dbname']=name
+		if not name=='MysqlDB':
+			bases[0].SERVER['database']=name
+		return type.__new__(cls,name,bases,attrs)
+class MysqlDB(Mysqlserver,metaclass=MysqlDBmetaclass):
 	def getconn(self):
-		conn=mysql.connector.connect(**self.SEVERCONFIG)
+		conn=mysql.connector.connect(**self.SERVER)
 		return conn
 	def getdata(self,sql):
 		conn=self.getconn()
@@ -16,52 +37,19 @@ class Mysqlserver():
 		cr=conn.cursor()
 		cr.execute(sql)
 		conn.commit()
-	def getdblist(self):
-		sql='show databases;'
+	def gettablelist(self):
 		conn=self.getconn()
 		cr=conn.cursor()
+		sql='show tables;'
 		cr.execute(sql)
 		t=cr.fetchall()
 		res=[]
 		for tp in t:
 			res.append(tp[0])
 		return res
-#数据库
-class MysqlDbMetaclass(type):
-	def __new__(cls,name,bases,attrs):
-		attrs['dbname']=name
-		def getconn(self):
-			self.SEVERCONFIG['database']=name
-			conn=mysql.connector.connect(**self.SEVERCONFIG)
-			return conn
-		attrs['getconn']=getconn
-		sql='show databases;'
-		conn=self.getconn()
-		cr=conn.cursor()
-		cr.execute('show databases;')
-		t=cr.fetchall()
-		res=[]
-		for tp in t:
-			res.append(tp[0])
-		
-		if name not in res and not name=='MysqlDb':
-			sql='create database %s;'%name
-			conn=mysql.connector.connect(**self.SEVERCONFIG)
-			cr=conn.cursor()
-			cr.execute(sql)
-			conn.commit()
-		return type.__new__(cls,name,bases,attrs)
-class MysqlDb(Mysqlserver,metaclass=MysqlDbMetaclass):
-	def getUsertable(self):
-		sql='show tables;'
-		t=self.getdata(sql)
-		l=[]
-		for tp in t:
-			l.append(tp[0])
-		return l
-	
 #表
-class MysqlTableMetaclass(MysqlDbMetaclass):
+
+class MysqlTableMetaclass(MysqlDBmetaclass):
 	def __new__(cls,name,bases,attrs):
 		attrs['tablename']=name
 		return type.__new__(cls,name,bases,attrs)
@@ -164,20 +152,16 @@ class MysqlTable(MysqlTableBase):
 		sql='delete from %s %s;'%(self.tablename,condition)
 		self.changedata(sql)
 		return True	
-			
-#______例子_______________________________________________
-#数据库示例
-class Groupdata1(MysqlDb):
+	
+class Groupdata1(MysqlDB):
 	pass
-		
-#表示例
 class Group10(MysqlTable,Groupdata1):
 	'aaaa'
 	pass
-#测试
 if __name__=='__main__':
-	s=Group10()
-	print(s.getdblist())
-	print(s.SEVERCONFIG)
-	print(s.getUsertable())
-	print(s.getcolname())
+	l=Group10()
+	print(l.SERVER)
+	print(l.getdblist())
+	print(l.gettablelist())
+	print(l.getcolname())
+	
