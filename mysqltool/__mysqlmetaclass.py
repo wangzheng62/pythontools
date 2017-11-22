@@ -153,7 +153,9 @@ class MysqlTable(MysqlTableBase):
 		self.changedata(sql)
 		return True	
 	#DDL
+	'''alter table tablename [add,drop,modify] colname datatype [unique,not null]'''
 	def alter(self,colname,action='ADD',NOTNULL=0,UNIQUE=0):
+		pass
 class Groupdata1(MysqlDB):
 	pass
 class Group10(MysqlTable,Groupdata1):
