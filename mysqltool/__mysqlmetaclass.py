@@ -19,12 +19,12 @@ class Mysqlserver():
 class MysqlDBmetaclass(type):
 	def __new__(cls,name,bases,attrs):
 		attrs['dbname']=name
-		if not name=='MysqlDB':
-			bases[0].SERVER['database']=name
+		attrs['dbconn']={'database':name}
 		return type.__new__(cls,name,bases,attrs)
 class MysqlDB(Mysqlserver,metaclass=MysqlDBmetaclass):
 	def getconn(self):
-		conn=mysql.connector.connect(**self.SERVER)
+		LOCALDB=dict(self.SERVER,**self.dbconn)
+		conn=mysql.connector.connect(**LOCALDB)
 		return conn
 	def getdata(self,sql):
 		conn=self.getconn()
@@ -154,17 +154,31 @@ class MysqlTable(MysqlTableBase):
 		return True	
 	#DDL
 	'''alter table tablename [add,drop,modify] colname datatype [unique,not null]'''
-	def alter(self,colname,action='ADD',NOTNULL=0,UNIQUE=0):
-		pass
+	def __alter(self,colname,action='',datatype='varchar(10)',constraint=''):
+		sql='alter table %s %s %s %s %s;'%(self.tablename,action,colname,datatype,constraint)
+		print(sql)
+	def coladd(self,colname,datatype='varchar(10)',constraint=''):
+		self.__alter(colname,action='add',datatype='varchar(10)',constraint='')
+	def coldrop(self,colname):
+		self.__alter(colname,action='drop',datatype='')
 class Groupdata1(MysqlDB):
 	pass
 class Group10(MysqlTable,Groupdata1):
 	'aaaa'
 	pass
+class Crm(MysqlDB):
+	pass
+class Userlist(MysqlTable,Crm):
+	pass
 if __name__=='__main__':
 	l=Group10()
+	s=Userlist()
 	print(l.SERVER)
 	print(l.getdblist())
 	print(l.gettablelist())
 	print(l.getcolname())
-	
+	print(s.SERVER)
+	print(s.getdblist())
+	print(s.gettablelist())
+	print(s.getcolname())
+	print(l.coldrop('hahhaa1'))
