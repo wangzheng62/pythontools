@@ -173,7 +173,7 @@ class Userlist(MysqlTable,Crm):
 if __name__=='__main__':
 	l=Group10()
 	s=Userlist()
-	print(l.SERVER)
+	print(l.__name__)
 	print(l.getdblist())
 	print(l.gettablelist())
 	print(l.getcolname())
