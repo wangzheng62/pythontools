@@ -98,6 +98,8 @@ class MysqlTableBase(metaclass=MysqlTableMetaclass):
 		for tp in t:
 			__colnames.append(tp[0])
 		return __colnames
+	
+	
 	#获取列值
 	def getvalue(self,**kw):
 		condition=''
@@ -119,6 +121,8 @@ class MysqlDB(MysqlDBBase):
 	pass
 class MysqlTable(MysqlTableBase):
 	def __init__(self,**kw):
+		for key in kw:
+			assert key in self.colnames,"当前表中没有->{}<-列".format(key)
 		self.info=kw
 	#辅助功能
 	def isexist(self):
@@ -212,7 +216,8 @@ if __name__=='__main__':
 		'aaaa'
 		pass
 	db=DBserver()
-	l=Group10()
+	l=Group10(**{"名字":123})
+	print(l.info)
 	print(db.databases)
 	print(l.DBSERVER)
 	print(l.db_name)
